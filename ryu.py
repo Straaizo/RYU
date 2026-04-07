@@ -904,9 +904,27 @@ def chat(client, historial, mensaje, perfil, indice_proyecto, modelo_activo="cla
     """
     uso_total = {"input": 0, "output": 0, "total": 0}
 
-    # Auto-limpiar historial si supera 20 mensajes
+    # Limpiar historial inteligentemente
+    # 1. Si supera 20 mensajes, mantener solo los ultimos 6
     if len(historial) > 20:
         historial[:] = historial[-6:]
+
+    # 2. Comprimir respuestas largas de codigo en el historial
+    # Las respuestas con ===ARCHIVO_MODIFICADO=== ya fueron guardadas en disco
+    # No necesitamos mantener el codigo completo en el historial
+    for i, msg in enumerate(historial):
+        if msg["role"] == "assistant" and "===ARCHIVO_MODIFICADO===" in msg["content"]:
+            # Reemplazar con resumen compacto
+            n_archivos = msg["content"].count("===ARCHIVO_MODIFICADO===")
+            historial[i] = {
+                "role": "assistant",
+                "content": "[CODIGO GENERADO Y GUARDADO: " + str(n_archivos) + " archivo(s) modificado(s). Contenido omitido para ahorrar contexto.]"
+            }
+        elif msg["role"] == "assistant" and "===CREAR_PROYECTO===" in msg["content"]:
+            historial[i] = {
+                "role": "assistant",
+                "content": "[PROYECTO CREADO. Estructura generada y guardada en disco.]"
+            }
 
     # ── PASO 1: Contexto ─────────────────────────────
     # Primeros 4 mensajes mandan archivos completos, despues solo estructura
@@ -932,10 +950,15 @@ def chat(client, historial, mensaje, perfil, indice_proyecto, modelo_activo="cla
         print("  " + C.GRAY + "[ 1/4 ] Analizando proyecto..." + C.RESET, flush=True)
 
         plan_system = system + (
-            "\n\nANTES DE GENERAR CODIGO responde SOLO con un plan en este formato:\n"
-            "ARCHIVOS_A_TOCAR: [lista de rutas absolutas separadas por coma]\n"
-            "CAMBIOS: [descripcion breve de cada cambio]\n"
-            "STACK: [tecnologias que vas a usar]\n"
+            "\n\nTAREA ACTUAL: " + mensaje + "\n"
+            "\nPRIMERO determina si esta tarea es:\n"
+            "A) NUEVA: pide algo diferente a lo anterior (nuevo componente, nueva seccion, nuevo color, etc)\n"
+            "B) CONTINUACION: corrige o extiende exactamente lo que acabas de hacer\n"
+            "\nResponde SOLO con este formato:\n"
+            "TIPO: [NUEVA o CONTINUACION]\n"
+            "ARCHIVOS_A_TOCAR: [lista de rutas absolutas]\n"
+            "CAMBIOS: [descripcion breve de QUE cambiar]\n"
+            "STACK: [tecnologias]\n"
             "Nada mas, sin codigo todavia."
         )
 
@@ -947,11 +970,24 @@ def chat(client, historial, mensaje, perfil, indice_proyecto, modelo_activo="cla
         print("  " + C.GRAY + "[ 2/4 ] Generando codigo..." + C.RESET, flush=True)
 
         # PASO 3: Generar codigo con el plan como contexto
+        # Si el plan dice NUEVA, limpiar historial antes de generar
+        es_tarea_nueva = "TIPO: NUEVA" in plan_texto.upper() or "TIPO:NUEVA" in plan_texto.upper().replace(" ", "")
+        if es_tarea_nueva:
+            # Limpiar historial — tarea completamente nueva
+            historial.clear()
+            historial_trabajo = []
+            print("  " + C.GRAY + "  → Tarea nueva detectada, contexto limpiado" + C.RESET, flush=True)
+
         gen_system = system + (
-            "\n\nPLAN PREVIO APROBADO:\n" + plan_texto +
-            "\n\nAhora genera el codigo completo siguiendo ese plan exactamente."
+            "\n\n[TAREA ACTUAL]\n"
+            "Tarea: " + mensaje + "\n"
+            "\nPLAN:\n" + plan_texto +
+            "\n\nGenera SOLO los cambios de esta tarea. "
+            "No toques archivos fuera del plan. "
+            + ("No hay tareas anteriores relevantes." if es_tarea_nueva else "Continuacion de la tarea anterior.")
         )
-        texto, uso_gen = llamar_api(client, gen_system, historial_trabajo, modelo_activo, max_tokens=6144)
+        historial_trabajo_gen = historial_trabajo + [{"role": "user", "content": mensaje}]
+        texto, uso_gen = llamar_api(client, gen_system, historial_trabajo_gen, modelo_activo, max_tokens=6144)
         uso_total["input"]  += uso_gen["input"]
         uso_total["output"] += uso_gen["output"]
         uso_total["total"]  += uso_gen["total"]
@@ -995,8 +1031,58 @@ def chat(client, historial, mensaje, perfil, indice_proyecto, modelo_activo="cla
             print("  " + C.GREEN + "[ 4/4 ] Codigo verificado" + C.RESET, flush=True)
 
     # ── PASO 6: Guardar en historial y entregar ───────
-    historial.append({"role": "user",      "content": mensaje})
-    historial.append({"role": "assistant", "content": texto})
+    # ── Guardar resumen inteligente en historial ─────
+    # En vez de guardar el codigo completo, guardamos un resumen
+    # Asi el historial es liviano pero RYU recuerda todo lo que hizo
+
+    historial.append({"role": "user", "content": mensaje})
+
+    if "===ARCHIVO_MODIFICADO===" in texto:
+        # Extraer qué archivos modificó y qué cambió
+        archivos_mod = []
+        for parte in texto.split("===ARCHIVO_MODIFICADO===")[1:]:
+            if "===FIN_ARCHIVO===" not in parte:
+                continue
+            bloque = parte.split("===FIN_ARCHIVO===")[0]
+            for linea in bloque.strip().split("\n"):
+                if linea.startswith("RUTA:"):
+                    archivos_mod.append(linea.replace("RUTA:", "").strip())
+                    break
+        texto_previo = texto.split("===ARCHIVO_MODIFICADO===")[0].strip()
+        resumen = (
+            "[TAREA COMPLETADA] " + mensaje + "\n"
+            "[ARCHIVOS MODIFICADOS]:\n"
+            + "\n".join("  - " + a for a in archivos_mod) + "\n"
+            "[ESTADO: guardado en disco. Esta tarea ya esta terminada.]"
+        )
+        contenido_historial = (texto_previo + "\n" + resumen) if texto_previo else resumen
+        historial.append({"role": "assistant", "content": contenido_historial})
+
+    elif "===CREAR_PROYECTO===" in texto:
+        texto_previo = texto.split("===CREAR_PROYECTO===")[0].strip()
+        resumen = (
+            "[TAREA COMPLETADA] " + mensaje + "\n"
+            "[ACCION]: Proyecto creado y guardado en disco.\n"
+            "[ESTADO: Esta tarea ya esta terminada.]"
+        )
+        contenido_historial = (texto_previo + "\n" + resumen) if texto_previo else resumen
+        historial.append({"role": "assistant", "content": contenido_historial})
+
+    else:
+        # Respuesta normal — guardar completa pero truncar si es muy larga
+        if len(texto) > 2000:
+            historial.append({"role": "assistant", "content": texto[:2000] + "\n[...truncado para ahorrar tokens]"})
+        else:
+            historial.append({"role": "assistant", "content": texto})
+
+    # Limpiar historial si se acumula demasiado (mantener ultimos 8 intercambios)
+    # Pero preservar siempre el primer mensaje del proyecto como ancla de contexto
+    if len(historial) > 16:
+        ancla = historial[:2] if len(historial) >= 2 else []
+        recientes = historial[-8:]
+        historial.clear()
+        historial.extend(ancla)
+        historial.extend(recientes)
 
     return texto, uso_total
 
@@ -1033,7 +1119,7 @@ def main():
         + "║        ██║  ██║   ██║   ╚██████╔╝            ║\n"
         + "║        ╚═╝  ╚═╝   ╚═╝    ╚═════╝             ║\n"
         + "║                                              ║\n"
-        + "║" + C.WHITE + "           ¡Hola, " + nombre + "!" + C.CYAN + "\n"
+        + "║" + C.WHITE + "               ¡Hola, " + nombre + "!" + C.CYAN + "                   ║\n"
         + "║" + C.WHITE + "        ¿ En que trabajamos hoy ?" + C.CYAN + "             ║\n"
         + "╚══════════════════════════════════════════════╝"
         + C.RESET + "\n"
@@ -1198,7 +1284,7 @@ def main():
 
         except KeyboardInterrupt:
             print("\n\n" + C.CYAN + "╔══════════════════════════════════╗")
-            print("║    Hasta luego, " + nombre + "!           ║")
+            print("║        Hasta luego, " + nombre + "!        ║")
             print("╚══════════════════════════════════╝" + C.RESET + "\n")
             break
         except anthropic.APIError as e:
