@@ -1,0 +1,14 @@
+{
+  "nombre": "Enzo",
+  "stack": [
+    "Python",
+    "JavaScript",
+    "React",
+    "Django",
+    "Flutter",
+    "Dart"
+  ],
+  "rol": "Software Developer",
+  "proyectos": "lh_inventario, app de inventario en flutter",
+  "idioma": "español"
+}
