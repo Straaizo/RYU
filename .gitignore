@@ -1,8 +1,23 @@
-# Variables de entorno y perfil — NUNCA subir al repo
-.env
-perfil.json
+# ── Dependencias ──────────────────────────────────
+node_modules/
 
-# Python
+# ── Secretos — NUNCA subir ────────────────────────
+.env
+.env.local
+.env.production
+
+# ── Datos del usuario (generados en runtime) ──────
+perfil.json
+sesion.json
+
+# ── Builds y outputs ──────────────────────────────
+out/
+dist/
+dist-installer/
+.vite/
+build/
+
+# ── Python (ryu.py legacy) ────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -12,9 +27,18 @@ env/
 venv/
 .venv/
 *.egg-info/
-dist/
-build/
 
-# Sistema
+# ── Sistema operativo ─────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ── IDEs ──────────────────────────────────────────
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+
+# ── Logs ──────────────────────────────────────────
+*.log
+npm-debug.log*
