@@ -168,7 +168,6 @@ Este software se distribuye **gratuitamente para uso personal y educativo**.
 
 La redistribución en cualquier formato está permitida siempre que se mantenga este aviso de copyright y los términos de licencia intactos.
 
-Este software se entrega "tal cual", sin garantías de ningún tipo.
 
 ---
 
