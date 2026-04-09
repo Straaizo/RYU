@@ -546,8 +546,10 @@ html, body, #root {
 }
 
 .ryu-content {
-  white-space: pre-wrap;
   word-break: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .msg-system {
@@ -588,14 +590,18 @@ html, body, #root {
 .code-block {
   background: var(--bg3);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 0 0 4px 4px;
   padding: 12px 16px;
-  margin: 8px 0;
+  margin: 0;
   overflow-x: auto;
   font-size: 12px;
   color: var(--green);
   white-space: pre;
   line-height: 1.5;
+}
+
+.code-block-open {
+  border-top: none;
 }
 
 .preview-code {
@@ -605,6 +611,88 @@ html, body, #root {
 }
 
 .code-fence { color: var(--green); }
+
+/* Código colapsable */
+.code-collapsible {
+  margin: 8px 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.code-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--gray);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 6px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.code-toggle:hover {
+  border-color: var(--cyan);
+  color: var(--white);
+}
+
+.code-collapsible:has(.code-block-open) .code-toggle {
+  border-radius: 4px 4px 0 0;
+  border-bottom-color: transparent;
+}
+
+.code-toggle-lang {
+  color: var(--cyan);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.code-toggle-info {
+  color: var(--gray);
+  font-size: 10px;
+}
+
+.code-toggle-arrow {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.code-toggle-copy {
+  background: transparent;
+  border: none;
+  color: var(--gray);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 4px;
+  transition: color 0.15s;
+  pointer-events: all;
+}
+
+.code-toggle-copy:hover { color: var(--cyan); }
+
+/* Inline code */
+.inline-code {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 11px;
+  color: var(--yellow);
+  font-family: var(--font);
+}
+
+/* Segmento de texto */
+.text-segment {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .btn-copy {
   background: transparent;

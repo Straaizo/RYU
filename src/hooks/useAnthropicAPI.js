@@ -55,6 +55,17 @@ Hoy es abril 2026. Usa siempre las versiones mas recientes y patrones modernos.
 - No hacer refactors no pedidos
 - Si hay ambiguedad, PREGUNTAR antes de escribir codigo
 
+## Formato de respuesta OBLIGATORIO
+SIEMPRE que generes codigo, sigue este orden:
+1. PRIMERO: 2-4 lineas en texto plano explicando QUE hiciste y POR QUE (sin codigo aqui)
+2. LUEGO: los bloques de codigo/archivos
+
+Ejemplo correcto:
+"Cree el componente Login con validacion de formulario y manejo de errores. Uso useState para el estado y axios para el POST al backend."
+[bloque de codigo]
+
+NUNCA pongas codigo sin explicacion previa.
+
 ## IMPORTANTE
 Cuando hay un proyecto activo, trabajas EXCLUSIVAMENTE con los archivos de ese proyecto.
 Siempre usa las rutas absolutas que se te proveen.
@@ -74,8 +85,22 @@ REGLA CRITICA: Devuelve TODOS los archivos necesarios de una vez.
 PROHIBIDO: No digas "voy a revisar" o frases sin codigo.
 OBLIGATORIO: Cada respuesta con cambios DEBE terminar con los bloques ===ARCHIVO_MODIFICADO===.
 
-## Crear proyectos
-Cuando pidan crear un proyecto nuevo:
+## Crear proyectos — REGLAS DE COMPLETITUD
+Cuando pidan crear un proyecto nuevo, es OBLIGATORIO:
+
+1. LISTAR primero todos los archivos que vas a crear
+2. Verificar que cada import/require referencia un archivo de esa lista
+3. Si un archivo A importa B, B DEBE estar en la lista y ser creado
+4. NUNCA dejar imports rotos o archivos faltantes
+5. Crear el proyecto COMPLETO en una sola respuesta, sin omitir nada
+
+Antes de generar el codigo, razona internamente:
+- ¿Que archivos necesita este proyecto para funcionar?
+- ¿Hay algun import en un archivo que no se va a crear?
+- ¿El package.json tiene todas las dependencias necesarias?
+- ¿Hay archivos de configuracion que se necesitan (vite.config, tsconfig, etc)?
+
+Solo cuando estes seguro de que el proyecto es completo, genera los bloques.
 
 ===CREAR_PROYECTO===
 RUTA_BASE: [ruta donde crear]
@@ -282,10 +307,32 @@ Nada mas, sin codigo todavia.`;
       texto = textoSimple;
     }
 
-    // Paso verificar (básico: chequear que los bloques estén completos)
-    if (texto.includes('===ARCHIVO_MODIFICADO===') || texto.includes('===CREAR_PROYECTO===')) {
+    // Paso verificar: si hay proyecto, pedir a Claude que valide completitud
+    if (texto.includes('===CREAR_PROYECTO===')) {
       setPipeline('verificando');
-      await new Promise(r => setTimeout(r, 300)); // feedback visual
+
+      const archivosCreados = [];
+      const bloqueProyecto = texto.split('===CREAR_PROYECTO===')[1]?.split('===FIN_PROYECTO===')[0] || '';
+      for (const linea of bloqueProyecto.split('\n')) {
+        if (linea.trim().startsWith('ARCHIVO:')) {
+          archivosCreados.push(linea.replace('ARCHIVO:', '').trim());
+        }
+      }
+
+      if (archivosCreados.length > 0) {
+        const verifySystem = system + `\n\nVERIFICACION DE PROYECTO\nArchivos generados:\n${archivosCreados.map(a => '- ' + a).join('\n')}\n\nRevisa el codigo generado. Si hay algun import que referencia un archivo NO en la lista, agrega ese archivo ahora con el formato ===CREAR_PROYECTO===. Si todo esta completo, responde exactamente: VERIFICACION_OK`;
+        const { text: verificado } = await callAPI(
+          [{ role: 'user', content: `Verifica completitud del proyecto generado:\n\n${texto.slice(0, 3000)}` }],
+          verifySystem, modelo, 2048
+        );
+
+        if (!verificado.includes('VERIFICACION_OK') && verificado.includes('===CREAR_PROYECTO===')) {
+          texto = texto + '\n' + verificado;
+        }
+      }
+    } else if (texto.includes('===ARCHIVO_MODIFICADO===')) {
+      setPipeline('verificando');
+      await new Promise(r => setTimeout(r, 200));
     }
 
     setPipeline('listo');

@@ -6,7 +6,6 @@ function limpiarTexto(texto) {
   for (const tag of ['===ARCHIVO_MODIFICADO===', '===FIN_ARCHIVO===', '===CREAR_PROYECTO===', '===FIN_PROYECTO===']) {
     t = t.replaceAll(tag, '');
   }
-  // Ocultar líneas de metadatos
   const lineas = t.split('\n').filter(l => {
     const s = l.trim();
     return !s.startsWith('RUTA:') && !s.startsWith('RUTA_BASE:') &&
@@ -15,33 +14,65 @@ function limpiarTexto(texto) {
   return lineas.join('\n').trim();
 }
 
-// Renderiza una línea con formato
-function renderLinea(linea, idx) {
-  if (linea.startsWith('```')) {
-    return (
-      <span key={idx} className="code-fence green">
-        {linea}
-      </span>
-    );
+// Bloque de código colapsable
+function CollapsibleCode({ lang, codigo }) {
+  const [abierto, setAbierto] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const lineas = codigo.split('\n').filter(l => l !== '').length;
+
+  function copiarCodigo(e) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(codigo);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 1500);
   }
+
+  return (
+    <div className="code-collapsible">
+      <button className="code-toggle" onClick={() => setAbierto(a => !a)}>
+        <span className="code-toggle-lang">{lang || 'código'}</span>
+        <span className="code-toggle-info">{lineas} líneas</span>
+        <span className="code-toggle-arrow">{abierto ? '▲ ocultar' : '▼ ver código'}</span>
+        {abierto && (
+          <span
+            className="code-toggle-copy"
+            onClick={copiarCodigo}
+            title="Copiar código"
+          >
+            {copiado ? '✓' : '⎘'}
+          </span>
+        )}
+      </button>
+      {abierto && (
+        <pre className="code-block code-block-open">
+          {codigo}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+// Renderiza una línea de texto con formato
+function renderLinea(linea, idx) {
   if (linea.startsWith('# ')) {
-    return (
-      <strong key={idx} className="yellow">
-        {linea}
-      </strong>
-    );
+    return <strong key={idx} className="yellow">{linea.slice(2)}</strong>;
   }
   if (linea.startsWith('## ') || linea.startsWith('### ')) {
-    return (
-      <strong key={idx} className="cyan">
-        {linea}
-      </strong>
-    );
+    return <strong key={idx} className="cyan">{linea.replace(/^#+\s/, '')}</strong>;
   }
   if (linea.startsWith('- ') || linea.startsWith('* ')) {
+    return <span key={idx} className="white">{'  ' + linea}</span>;
+  }
+  // inline code con backticks
+  if (linea.includes('`')) {
+    const parts = linea.split('`');
     return (
       <span key={idx} className="white">
-        {'  ' + linea}
+        {parts.map((part, i) =>
+          i % 2 === 1
+            ? <code key={i} className="inline-code">{part}</code>
+            : part
+        )}
       </span>
     );
   }
@@ -49,42 +80,76 @@ function renderLinea(linea, idx) {
   return <span key={idx} className="white">{linea}</span>;
 }
 
-// Renderiza el contenido completo de un mensaje formateando código
+// Renderiza el contenido completo separando texto y bloques de código
 function renderContenido(texto) {
   const lineas = texto.split('\n');
   const result = [];
   let enCodigo = false;
   let bloqueActual = [];
+  let langActual = '';
   let idxBloque = 0;
+  let textoPendiente = [];
+  let idxLinea = 0;
+
+  function flushTexto() {
+    if (textoPendiente.length === 0) return;
+    const clave = `text-${idxLinea}`;
+    result.push(
+      <div key={clave} className="text-segment">
+        {textoPendiente.map((linea, i) => (
+          <React.Fragment key={i}>
+            {renderLinea(linea, i)}
+            {i < textoPendiente.length - 1 && '\n'}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+    textoPendiente = [];
+  }
 
   for (let i = 0; i < lineas.length; i++) {
     const linea = lineas[i];
+    idxLinea = i;
 
-    if (linea.startsWith('```')) {
-      if (!enCodigo) {
-        enCodigo = true;
-        bloqueActual = [linea];
-      } else {
-        enCodigo = false;
-        bloqueActual.push(linea);
-        const clave = `code-${idxBloque++}`;
-        result.push(
-          <pre key={clave} className="code-block">
-            {bloqueActual.slice(1, -1).join('\n')}
-          </pre>
-        );
-        bloqueActual = [];
-      }
+    if (!enCodigo && linea.startsWith('```')) {
+      flushTexto();
+      enCodigo = true;
+      langActual = linea.slice(3).trim();
+      bloqueActual = [];
+    } else if (enCodigo && (linea.trim() === '```' || linea.startsWith('```'))) {
+      enCodigo = false;
+      const clave = `code-${idxBloque++}`;
+      result.push(
+        <CollapsibleCode
+          key={clave}
+          lang={langActual}
+          codigo={bloqueActual.join('\n')}
+          idx={idxBloque}
+        />
+      );
+      bloqueActual = [];
+      langActual = '';
     } else if (enCodigo) {
       bloqueActual.push(linea);
     } else {
-      result.push(
-        <React.Fragment key={i}>
-          {renderLinea(linea, i)}
-          {'\n'}
-        </React.Fragment>
-      );
+      textoPendiente.push(linea);
     }
+  }
+
+  // Flush resto de texto
+  flushTexto();
+
+  // Si quedó un bloque sin cerrar, mostrarlo igual
+  if (enCodigo && bloqueActual.length > 0) {
+    const clave = `code-${idxBloque}`;
+    result.push(
+      <CollapsibleCode
+        key={clave}
+        lang={langActual}
+        codigo={bloqueActual.join('\n')}
+        idx={idxBloque}
+      />
+    );
   }
 
   return result;
@@ -142,6 +207,7 @@ export default function Message({ msg }) {
               setCopiado(true);
               setTimeout(() => setCopiado(false), 1500);
             }}
+            title="Copiar respuesta completa"
           >
             {copiado ? '✓' : '⎘'}
           </button>
