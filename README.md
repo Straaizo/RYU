@@ -1,60 +1,61 @@
-# RYU — Asistente de Programación
+<div align="center">
+  <img src="assets/logo.png" alt="RYU Logo" width="200" />
 
-```
-╔══════════════════════════════════════════════╗
-║          ██████╗ ██╗   ██╗██╗   ██╗          ║
-║          ██╔══██╗╚██╗ ██╔╝██║   ██║          ║
-║          ██████╔╝ ╚████╔╝ ██║   ██║          ║
-║          ██╔══██╗  ╚██╔╝  ██║   ██║          ║
-║          ██║  ██║   ██║   ╚██████╔╝          ║
-║          ╚═╝  ╚═╝   ╚═╝    ╚═════╝           ║
-║          Asistente de Programación           ║
-║              powered by Claude               ║
-╚══════════════════════════════════════════════╝
-```
+  # RYU — Programming Assistant
 
-**RYU** es un asistente de programación personal de escritorio, construido con Electron + React y conectado a la API de Anthropic (Claude). Diseñado para desarrolladores que quieren un asistente contextual que entiende su proyecto completo, puede leer y modificar archivos reales, y responde con el estilo directo de un senior dev.
+  **Desktop programming assistant powered by Claude AI**
+
+  [![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-red.svg)](LICENSE)
+  [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue.svg)](https://github.com/straaizo/ryu/releases/latest)
+  [![Electron](https://img.shields.io/badge/Electron-31-47848F.svg)](https://electronjs.org)
+  [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev)
+
+</div>
 
 ---
 
-## Características
-
-- **Contexto total del proyecto** — indexa todos los archivos de tu codebase y los incluye en cada consulta
-- **Modificación de archivos real** — RYU propone cambios, vos confirmás cuáles guardar
-- **Drag & drop + adjuntos** — arrastrá archivos o imágenes directamente al chat
-- **Soporte multimodal** — enviá capturas de pantalla o diseños y RYU los analiza
-- **Dos modelos** — Haiku (rápido, económico) y Sonnet (complejo, potente)
-- **Pipeline visible** — Analizando → Generando → Verificando → Listo
-- **Persistencia de sesión** — retoma el último proyecto al abrir
-- **Sin Python requerido** — el instalador es autocontenido
+RYU is a desktop programming assistant built with Electron and React, connected to the Anthropic API (Claude). It indexes your entire project, reads and modifies real files, and responds with the precision of an experienced senior developer.
 
 ---
 
-## Requisitos
+## Features
+
+- **Full project context** — indexes all files in your codebase and includes them in every query
+- **Real file modification** — RYU proposes changes and you decide which ones to save
+- **Drag & drop + attachments** — drag files or images directly into the chat
+- **Multimodal support** — send screenshots or designs and RYU analyzes them
+- **Two models** — Haiku (fast, economical) and Sonnet (complex, powerful)
+- **Visible pipeline** — Analyzing → Generating → Verifying → Done
+- **Session persistence** — resumes the last project on startup
+- **No Python required** — the installer is self-contained
+
+---
+
+## Requirements
 
 - Windows 10 / 11 (x64)
-- Conexión a internet
-- **API Key de Anthropic** — obtenela gratis en [console.anthropic.com](https://console.anthropic.com)
+- Internet connection
+- **Anthropic API Key** — get one at [console.anthropic.com](https://console.anthropic.com)
 
-> La API key se guarda localmente en tu equipo con `electron-store`. Nunca sale de tu máquina salvo para llamar directamente a la API de Anthropic.
-
----
-
-## Instalación (usuario final)
-
-1. Descargá el ZIP desde [Releases](../../releases/latest): `RYU-win32-x64.zip`
-2. Descomprimí en la carpeta que quieras
-3. Ejecutá `RYU.exe`
-4. Al abrir por primera vez, ingresá tu API key de Anthropic
-5. Completá el onboarding — tarda menos de 1 minuto
-
-> Sin instalación, sin permisos de administrador, sin dependencias externas.
+> The API key is stored locally on your machine using `electron-store`. It never leaves your computer except to call the Anthropic API directly.
 
 ---
 
-## Instalación para desarrolladores
+## Installation (end users)
 
-### Prerequisitos
+1. Download the ZIP from [Releases](../../releases/latest): `RYU-win32-x64.zip`
+2. Extract to any folder
+3. Run `RYU.exe`
+4. On first launch, enter your Anthropic API key
+5. Complete the onboarding — takes less than a minute
+
+> No installation required, no administrator permissions, no external dependencies.
+
+---
+
+## Developer Setup
+
+### Prerequisites
 
 - [Node.js 20+ LTS](https://nodejs.org/)
 - npm 10+
@@ -68,39 +69,41 @@ npm install
 npm start
 ```
 
-### Build del ZIP portable
+### Build portable ZIP
 
 ```bash
 npm run make
 ```
 
-El ZIP queda en `out/make/zip/win32/x64/RYU-win32-x64.zip`.
+Output: `out/make/zip/win32/x64/RYU-win32-x64.zip`
 
 ---
 
-## Estructura del proyecto
+## Project Structure
 
 ```
 ryu/
 ├── electron/
-│   ├── main.js          # proceso principal, IPC handlers, filesystem
-│   └── preload.js       # bridge seguro renderer ↔ main
+│   ├── main.js          # main process, IPC handlers, filesystem
+│   └── preload.js       # secure renderer ↔ main bridge
 ├── src/
 │   ├── components/
-│   │   ├── Chat.jsx             # pantalla principal de chat
-│   │   ├── ErrorBoundary.jsx    # captura de errores de React
-│   │   ├── FileConfirm.jsx      # modal confirmación de archivos
-│   │   ├── Message.jsx          # renderizado de mensajes
-│   │   ├── Onboarding.jsx       # setup inicial y edición de perfil
-│   │   ├── Sidebar.jsx          # árbol de archivos del proyecto
-│   │   └── TokenCounter.jsx
+│   │   ├── Chat.jsx             # main chat screen
+│   │   ├── ErrorBoundary.jsx    # React error boundary
+│   │   ├── FileConfirm.jsx      # file confirmation modal
+│   │   ├── Message.jsx          # message rendering with collapsible code
+│   │   ├── Onboarding.jsx       # initial setup and profile editing
+│   │   ├── Sidebar.jsx          # project file tree
+│   │   └── TokenCounter.jsx     # token usage display
 │   ├── hooks/
-│   │   ├── useAnthropicAPI.js   # lógica de IA (pipeline 4 pasos)
-│   │   ├── usePersistence.js    # perfil y sesión en electron-store
-│   │   └── useProjectIndex.js  # indexación de proyectos
+│   │   ├── useAnthropicAPI.js   # AI logic (4-step pipeline)
+│   │   ├── usePersistence.js    # profile and session via electron-store
+│   │   └── useProjectIndex.js  # project indexing
 │   ├── styles/globals.css
 │   ├── App.jsx
 │   └── main.jsx
+├── assets/
+│   └── logo.png
 ├── forge.config.js
 ├── vite.main.config.js
 ├── vite.preload.config.js
@@ -110,60 +113,68 @@ ryu/
 
 ---
 
-## Uso
+## Usage
 
-### Cargar un proyecto
+### Load a project
 
-Clic en **📁 Proyecto** en el header o `Ctrl+O`. RYU indexa todos los archivos relevantes y los incluye como contexto en cada mensaje.
+Click **📁 Project** in the header or press `Ctrl+O`. RYU indexes all relevant files and includes them as context in every message.
 
-### Adjuntar archivos
+### Attach files
 
-- **Drag & drop** — arrastrá archivos o imágenes al área de chat
-- **Botón 📎** — abre diálogo para seleccionar múltiples archivos
-- **Ctrl+V** — pegá imágenes del portapapeles directamente
-- Límite: 5 archivos por mensaje
+- **Drag & drop** — drag files or images into the chat area
+- **📎 Button** — opens a dialog to select multiple files
+- **Ctrl+V** — paste images from clipboard directly
+- Limit: 5 files per message
 
-### Modificar archivos
+### Modify files
 
-Cuando RYU genera cambios de código, aparece un modal con preview de cada archivo. Podés elegir cuáles guardar antes de confirmar.
+When RYU generates code changes, a modal appears with a preview of each file. You can choose which ones to save before confirming.
 
-### Atajos de teclado
+### Keyboard Shortcuts
 
-| Atajo | Acción |
+| Shortcut | Action |
 |---|---|
-| `Enter` | Enviar mensaje |
-| `Shift+Enter` | Nueva línea |
-| `Ctrl+O` | Abrir proyecto |
-| `Ctrl+Shift+O` | Adjuntar archivos |
-| `Ctrl+Shift+R` | Reindexar proyecto |
-| `Ctrl+L` | Limpiar historial |
+| `Enter` | Send message |
+| `Shift+Enter` | New line |
+| `Ctrl+O` | Open project |
+| `Ctrl+Shift+O` | Attach files |
+| `Ctrl+Shift+R` | Reindex project |
+| `Ctrl+L` | Clear history |
 
 ---
 
-## Privacidad
+## Privacy
 
-- La API key se almacena **localmente** en `%APPDATA%\ryu\config.json`
-- Los mensajes van **directamente** a la API de Anthropic — sin servidores intermediarios
-- RYU no recopila ni envía telemetría
+- The API key is stored **locally** at `%APPDATA%\ryu\config.json`
+- Messages go **directly** to the Anthropic API — no intermediate servers
+- RYU does not collect or send telemetry of any kind
 
 ---
 
-## Stack técnico
+## Tech Stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 |---|---|
 | Desktop | Electron 31 |
 | UI | React 18 + Vite 5 |
-| IA | Anthropic SDK (`claude-haiku-4-5`, `claude-sonnet-4-6`) |
-| Persistencia | electron-store |
-| Build | electron-forge + electron-builder (NSIS) |
+| AI | Anthropic SDK (`claude-haiku-4-5`, `claude-sonnet-4-6`) |
+| Persistence | electron-store |
+| Build | electron-forge + maker-zip |
 
 ---
 
-## Licencia
+## License
 
-MIT — libre para uso personal y comercial.
+Copyright (c) 2026 Enzo Sabattini
+
+This software is provided **free of charge for personal and educational use only**.
+
+**Commercial use is strictly prohibited.** You may not sell, license, sublicense, or otherwise use this software or any derivative work for commercial purposes or financial gain.
+
+Redistribution in source or binary form is permitted provided that this copyright notice and license terms are preserved intact.
+
+This software is provided "as is", without warranty of any kind.
 
 ---
 
-*Creado por [Enzo Sabattini](https://github.com/straaizo) · powered by [Claude](https://anthropic.com)*
+*Created by [Enzo Sabattini](https://github.com/straaizo) · powered by [Claude](https://anthropic.com)*

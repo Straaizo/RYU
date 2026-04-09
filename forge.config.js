@@ -3,6 +3,7 @@ module.exports = {
     asar: true,
     name: 'RYU',
     executableName: 'RYU',
+    icon: './assets/icon', // sin extensión — Electron agrega .ico en Windows, .icns en Mac
   },
   rebuildConfig: {},
   makers: [
